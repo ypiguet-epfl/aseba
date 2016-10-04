@@ -5,10 +5,10 @@
 project(aseba)
 
 # ensure a minimal version of CMake
-cmake_minimum_required(VERSION 2.8.10)
+cmake_minimum_required(VERSION 2.8.12)
 
 # additional CMake modules
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMakeModules)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/CMakeModules)
 include(CMakeModules/ParseVersion.cmake)
 
 # check the compiler version as we need full C++11 support
@@ -48,6 +48,11 @@ else ()
 	set (CMAKE_CXX_STANDARD 11)
 endif ()
 
+# check that the Qt5 installation is given as prefix
+if (APPLE OR WIN32 AND NOT CMAKE_PREFIX_PATH)
+	message(FATAL_ERROR "You must set CMAKE_PREFIX_PATH to the location of your Qt5 installation")
+endif ()
+
 # Remove -Wl,--no-undefined which CMake 3.0.2 (on OpenSUSE 13.2) adds to the
 # linker options when building shared libs. That breaks building libs that use
 # callbacks that will be provided by other libs when the executable is linked.
@@ -76,11 +81,17 @@ else (ENKI_INCLUDE_DIR AND ENKI_LIBRARY AND ENKI_VIEWER_LIBRARY)
 endif (ENKI_INCLUDE_DIR AND ENKI_LIBRARY AND ENKI_VIEWER_LIBRARY)
 
 # Qt
+find_package(Qt5Core)
+find_package(Qt5Gui)
+find_package(Qt5Widgets)
+find_package(Qt5Network)
+find_package(Qt5Multimedia)
+find_package(Qt5Xml)
+find_package(Qt5WebKitWidgets)
+find_package(Qt5Svg)
 if (UNIX AND NOT APPLE)
-	find_package(Qt4 COMPONENTS QtCore QtGui QtNetwork QtXml QtHelp QtSvg QtWebKit QtDBus)
-else (UNIX AND NOT APPLE)
-	find_package(Qt4 COMPONENTS QtCore QtGui QtNetwork QtXml QtHelp QtSvg QtWebKit)
-endif (UNIX AND NOT APPLE)
+	find_package(Qt5DBus)
+endif ()
 
 # Qwt
 find_path(QWT_INCLUDE_DIR qwt_plot.h /usr/include/qwt5-qt4 /usr/include/qwt-qt4 /usr/local/include/qwt-qt4 /usr/include/qwt /usr/local/include/qwt)
