@@ -24,36 +24,29 @@ if (PROTOBUF_FOUND AND PROTOBUF_PROTOC_EXECUTABLE)
 	include_directories(${PROTOBUF_INCLUDE_DIR})
 	set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${PROTOBUF_LIBRARY})
 	message(STATUS "Google Protobuf library and compiler found, enabling usage logging")
-else (PROTOBUF_FOUND AND PROTOBUF_PROTOC_EXECUTABLE)
+else ()
 	message(STATUS "Google Protobuf library and compiler *not* found, usage logging disabled.") 
-endif (PROTOBUF_FOUND AND PROTOBUF_PROTOC_EXECUTABLE)
+endif ()
 
-if (QT4_FOUND AND QT_QTWEBKIT_FOUND)
-	set(QT_USE_QTXML ON)
-	set(QT_USE_QTNETWORK ON)
-	set(QT_USE_QTMAIN ON)
-	set(QT_USE_QTHELP ON)
-	set(QT_USE_QTCONCURRENT ON)
-	set(QT_USE_QTSVG ON)
-	set(QT_USE_QTWEBKIT ON)
-	include(${QT_USE_FILE})
+if (Qt5Widgets_FOUND AND Qt5Xml_FOUND AND Qt5Network_FOUND AND Qt5Concurrent_FOUND AND Qt5Svg_FOUND AND Qt5WebKitWidgets_FOUND)
 
 	# add a console for debug messages under Windows
 	if (WIN32)
 		set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-Wl,-subsystem,console ${CMAKE_EXE_LINKER_FLAGS}")
-	endif (WIN32)
+	endif ()
 	
 	if (QWT_LIBRARIES AND QWT_INCLUDE_DIR)
-		message(STATUS "Qwt found")
+		message(STATUS "Qwt found, enabling plotting in Studio")
 		include_directories (${QWT_INCLUDE_DIR})
 		set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${QWT_LIBRARIES})
 		add_definitions(-DHAVE_QWT)
-	else (QWT_LIBRARIES AND QWT_INCLUDE_DIR)
-		message(STATUS "Qwt not found")
-	endif (QWT_LIBRARIES AND QWT_INCLUDE_DIR)
+	else ()
+		message(STATUS "Qwt not found, disabling plotting in Studio")
+	endif ()
 
 	# generates the documentation
-	if (QT_QTHELP_FOUND AND QT_QCOLLECTIONGENERATOR_EXECUTABLE)
+	if (Qt5Help_FOUND AND QT_QCOLLECTIONGENERATOR_EXECUTABLE)
+	# FIXME
 		message(STATUS "qcollectiongenerator executable found")
 		# Use PATH instead of DIRECTORY on next line to support CMake < 2.8.11
 		get_filename_component(QT_QCOLLECTIONGENERATOR_DIRECTORY ${QT_QCOLLECTIONGENERATOR_EXECUTABLE} PATH)
@@ -67,9 +60,9 @@ if (QT4_FOUND AND QT_QTWEBKIT_FOUND)
 			OUTPUT ${DOC_NAME}.qhc
 			COMMAND ${QT_QCOLLECTIONGENERATOR_EXECUTABLE} ARGS ${DOC_NAME}.qhcp -o ${DOC_NAME}.qhc
 			DEPENDS ${DOC_NAME}.qhcp ${DOC_NAME}.qch)
-	else (QT_QTHELP_FOUND AND QT_QCOLLECTIONGENERATOR_EXECUTABLE)
-		message(WARNING "Qt help support missing, studio online help disabled (hint: on Ubuntu, install package qt4-dev-tools)")
-	endif (QT_QTHELP_FOUND AND QT_QCOLLECTIONGENERATOR_EXECUTABLE)
+	else ()
+		message(WARNING "Qt help support missing, studio online help disabled (hint: on Ubuntu, install package qttools5-dev)")
+	endif ()
 	
 	# code common to the use of Aseba under Qt
 	set(qt_common_SRCS
@@ -81,7 +74,7 @@ if (QT4_FOUND AND QT_QTWEBKIT_FOUND)
 		Plugin.cpp
 		translations/CompilerTranslator.cpp
 	)
-	qt4_wrap_cpp(qt_common_MOCS
+	qt5_wrap_cpp(qt_common_MOCS
 		Target.h
 		DashelTarget.h
 		TargetModels.h
@@ -89,16 +82,17 @@ if (QT4_FOUND AND QT_QTWEBKIT_FOUND)
 		translations/CompilerTranslator.h
 	)
 	add_library(asebaqtcommon STATIC ${qt_common_SRCS} ${qt_common_MOCS})
+	qt5_use_modules(asebaqtcommon Widgets Xml)
 	
 	# plugins
 	add_subdirectory(plugins)
 	
 	# resources
-	qt4_add_resources(resfiles asebastudio.qrc)
+	qt5_add_resources(resfiles asebastudio.qrc)
 	
 	include_directories (${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-	if (QT_QTHELP_FOUND)
+	if (Qt5Help_FOUND)
 		# studio for desktop use
 		set(studio_SRCS
 			StudioAeslEditor.cpp
@@ -114,7 +108,7 @@ if (QT4_FOUND AND QT_QTWEBKIT_FOUND)
 			ConfigDialog.cpp
 			ModelAggregator.cpp
 		)
-		qt4_wrap_cpp(studio_MOCS
+		qt5_wrap_cpp(studio_MOCS
 			StudioAeslEditor.h
 			MainWindow.h
 			NamedValuesVectorModel.h
@@ -129,18 +123,18 @@ if (QT4_FOUND AND QT_QTWEBKIT_FOUND)
 
 		if (QT_QCOLLECTIONGENERATOR_EXECUTABLE)
 			file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/asebastudiohelp.qrc ${CMAKE_CURRENT_SOURCE_DIR}/aseba-doc.qhcp DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-			qt4_add_resources(resfiles ${CMAKE_CURRENT_BINARY_DIR}/asebastudiohelp.qrc)
-		endif (QT_QCOLLECTIONGENERATOR_EXECUTABLE)
+			qt5_add_resources(resfiles ${CMAKE_CURRENT_BINARY_DIR}/asebastudiohelp.qrc)
+		endif ()
 
 		add_executable(asebastudio WIN32 ${studio_SRCS} ${studio_MOCS} ${resfiles} ${CMAKE_BINARY_DIR}/version.h)
 		if (HAS_DYN_VERSION)
 			add_dependencies(asebastudio versionheader)
-		endif (HAS_DYN_VERSION)
+		endif ()
 
-		target_link_libraries(asebastudio asebaqtplugins asebaqtcommon asebacompiler ${ASEBA_CORE_LIBRARIES} ${ADDITIONAL_LIBRARIES} ${QT_LIBRARIES})
+		target_link_libraries(asebastudio asebaqtplugins asebaqtcommon asebacompiler ${ASEBA_CORE_LIBRARIES} ${ADDITIONAL_LIBRARIES} Qt5::Help Qt5::WebKitWidgets Qt5::Svg Qt5::Concurrent Qt5::Network Qt5::Xml Qt5::Widgets)
 		
 		install(TARGETS asebastudio RUNTIME DESTINATION bin LIBRARY DESTINATION bin)
-	endif (QT_QTHELP_FOUND)
+	endif ()
 	
 	# Thymio VPL standalone
 	include_directories(${CMAKE_CURRENT_BINARY_DIR}/plugins/ThymioVPL)
@@ -148,27 +142,27 @@ if (QT4_FOUND AND QT_QTWEBKIT_FOUND)
 		ThymioVPLStandalone.cpp
 		thymiovpl.cpp
 	)
-	qt4_wrap_cpp(thymiovpl_MOCS
+	qt5_wrap_cpp(thymiovpl_MOCS
 		ThymioVPLStandalone.h
 	)
 
 	if (ANDROID)
 		add_library(thymiovpl SHARED ${thymiovpl_SRCS} ${thymiovpl_MOCS} ${resfiles} ${CMAKE_BINARY_DIR}/version.h)
-	else (ANDROID)
+	else ()
 		add_executable(thymiovpl WIN32 ${thymiovpl_SRCS} ${thymiovpl_MOCS} ${resfiles} ${CMAKE_BINARY_DIR}/version.h)
-	endif (ANDROID)
+	endif ()
 	if (HAS_DYN_VERSION)
 		add_dependencies(thymiovpl versionheader)
-	endif (HAS_DYN_VERSION)
+	endif ()
 	
-	target_link_libraries(thymiovpl asebaqtplugins asebaqtcommon asebacompiler ${ASEBA_CORE_LIBRARIES} ${ADDITIONAL_LIBRARIES} ${QT_LIBRARIES})
+	target_link_libraries(thymiovpl asebaqtplugins asebaqtcommon asebacompiler ${ASEBA_CORE_LIBRARIES} ${ADDITIONAL_LIBRARIES} Qt5::Svg Qt5::Network Qt5::Xml Qt5::Widgets)
 	
 	# Render blocks helper
 	set(rendervplblocks_SRCS
 		rendervplblocks.cpp
 	)
 	add_executable(rendervplblocks WIN32 ${rendervplblocks_SRCS} ${resfiles} ${CMAKE_BINARY_DIR}/version.h)
-	target_link_libraries(rendervplblocks asebaqtplugins asebaqtcommon ${ASEBA_CORE_LIBRARIES} ${ADDITIONAL_LIBRARIES} ${QT_LIBRARIES})
+	target_link_libraries(rendervplblocks asebaqtplugins asebaqtcommon ${ASEBA_CORE_LIBRARIES} ${ADDITIONAL_LIBRARIES} Qt5::Svg Qt5::Widgets)
 
 	install(TARGETS thymiovpl RUNTIME DESTINATION bin LIBRARY DESTINATION bin)
-endif (QT4_FOUND AND QT_QTWEBKIT_FOUND)
+endif ()

@@ -49,7 +49,7 @@ else ()
 endif ()
 
 # check that the Qt5 installation is given as prefix
-if (APPLE OR WIN32 AND NOT CMAKE_PREFIX_PATH)
+if ((APPLE OR WIN32) AND NOT CMAKE_PREFIX_PATH)
 	message(FATAL_ERROR "You must set CMAKE_PREFIX_PATH to the location of your Qt5 installation")
 endif ()
 
@@ -85,17 +85,20 @@ find_package(Qt5Core)
 find_package(Qt5Gui)
 find_package(Qt5Widgets)
 find_package(Qt5Network)
+find_package(Qt5Help)
 find_package(Qt5Multimedia)
+find_package(Qt5Concurrent)
 find_package(Qt5Xml)
 find_package(Qt5WebKitWidgets)
 find_package(Qt5Svg)
+find_package(Qt5X11Extras)
 if (UNIX AND NOT APPLE)
 	find_package(Qt5DBus)
 endif ()
 
 # Qwt
-find_path(QWT_INCLUDE_DIR qwt_plot.h /usr/include/qwt5-qt4 /usr/include/qwt-qt4 /usr/local/include/qwt-qt4 /usr/include/qwt /usr/local/include/qwt)
-find_library(QWT_LIBRARIES NAMES qwt5-qt4 qwt-qt4 qwt PATHS /usr/lib /usr/local/lib)
+find_path(QWT_INCLUDE_DIR qwt_plot.h /usr/include/qwt5-qt5 /usr/include/qwt-qt5 /usr/local/include/qwt-qt5 /usr/include/qwt /usr/local/include/qwt)
+find_library(QWT_LIBRARIES NAMES qwt5-qt5 qwt-qt5 qwt PATHS /usr/lib /usr/local/lib)
 
 # Aseba itself
 set(LIB_INSTALL_DIR lib CACHE FILEPATH "Where to install libraries")
