@@ -73,7 +73,10 @@ namespace Aseba
         // debug variables
         bool verbose;
         int iterations;
-        
+
+        bool serveLocalFiles;	// true to also serve local files in docRoot
+  		std::string docRoot;
+
         // Extract definitions from AESL file
         Aseba::CommonDefinitions commonDefinitions;
         NodeNameVariablesMap allVariables;
@@ -84,6 +87,7 @@ namespace Aseba
     public:
         //default values needed for unit testing
         HttpInterface(const std::string& target="tcp:127.0.0.1;port=33333", const std::string& http_port="3000", const int iterations=-1);
+        virtual void setDocumentRoot(const std::string &docRoot);
         virtual void run();
         virtual bool descriptionReceived();
         virtual void broadcastGetDescription();
@@ -119,6 +123,7 @@ namespace Aseba
         virtual void aeslLoad(xmlDoc* doc);
         virtual void incomingVariables(const Variables *variables);
         virtual void incomingUserMsg(const UserMessage *userMsg);
+	virtual void incomingGetFile(HttpRequest* req, std::string filename);
         virtual void routeRequest(HttpRequest* req);
         
         // helper functions

@@ -74,7 +74,8 @@ int main(int argc, char *argv[])
     bool verbose = false;
     bool dump = false;
     int Kiterations = -1; // set to > 0 to limit run time e.g. for valgrind
-        
+    char const *docRoot = nullptr;
+
     // process command line
     int argCounter = 1;
     while (argCounter < argc)
@@ -91,6 +92,8 @@ int main(int argc, char *argv[])
             dumpVersion(std::cout), exit(1);
         else if ((strcmp(arg, "-p") == 0) || (strcmp(arg, "--port") == 0))
             http_port = argv[argCounter++];
+        else if (strcmp(arg, "--doc") == 0)
+            docRoot = argv[argCounter++];
         else if ((strcmp(arg, "-a") == 0) || (strcmp(arg, "--aesl") == 0))
             aesl_filename = argv[argCounter++];
         else if ((strcmp(arg, "-K") == 0) || (strcmp(arg, "--Kiter") == 0))
@@ -106,7 +109,11 @@ int main(int argc, char *argv[])
     try
     {
         Aseba::HttpInterface* network(new Aseba::HttpInterface(dashel_target, http_port, 1000*Kiterations));
-        
+
+        if (docRoot != nullptr) {
+    		network->setDocumentRoot(docRoot);
+    	}
+
         for (int i = 0; i < 500; i++)
             network->step(10); // wait for description, variables, etc
         if (aesl_filename.size() > 0)

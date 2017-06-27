@@ -77,6 +77,7 @@
 #include <cstring>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <set>
 #include <valarray>
 #include <vector>
@@ -154,7 +155,14 @@ namespace Aseba
         // listen for incoming HTTP requests
         httpStream = connect("tcpin:port=" + http_port);
     }
-    
+
+    void HttpInterface::setDocumentRoot(const std::string &docRoot) {
+    	this->docRoot = docRoot;
+    	if (docRoot.length() > 0 && docRoot.back() != '/')
+        	this->docRoot += "/";
+    	this->serveLocalFiles = true;
+    }
+
     void HttpInterface::broadcastGetDescription()
     {
         GetDescription getDescription;
@@ -411,7 +419,63 @@ namespace Aseba
             }
         }
     }
-    
+
+	static std::string getSuffix(std::string &path)
+	{
+		auto i = path.rfind(".");
+		std::string suffix;
+		if (i != std::string::npos)
+			suffix = path.substr(i + 1);
+		return suffix;
+	}
+
+	static std::map<std::string, std::string> const suffixMapping = {
+		{ "css", "text/css" },
+		{ "gif", "image/gif" },
+		{ "htm", "text/html" },
+		{ "html", "text/html" },
+		{ "jpg", "image/jpg" },
+		{ "js", "text/javascript" },
+		{ "pdf", "application/pdf" },
+		{ "png", "image/png" },
+		{ "txt", "text/plain" },
+		{ "xml", "application/xml" }
+	};
+
+	void HttpInterface::incomingGetFile(HttpRequest* req, std::string filename)
+	{
+		// check that url does not begin with a dot
+		if (filename.length() < 1 || filename[0] != '.')
+		{
+			std::string path = docRoot + filename;
+			std::ifstream f(path.c_str());
+			if (f.good())
+			{
+				auto type = suffixMapping.find(getSuffix(path));
+				if (type != suffixMapping.end())
+				{
+					std::stringbuf content;
+					while (!f.eof())
+					{
+						const size_t bufferSize = 1024;
+						char buffer[bufferSize];
+						f.read(buffer, bufferSize);
+						content.sputn(buffer, f.gcount());
+					}
+        			strings headers;
+        			headers.push_back(std::string("Content-Type: ") + type->second);
+        			headers.push_back(std::string("Content-Length: ") + std::to_string(content.str().length()));
+        			addHeaders(req, headers);
+        			appendResponse(req, 200, false, content.str());
+					return;
+				}
+			}
+		}
+
+		// not served
+		finishResponse(req, 404, "");
+	}
+
     //-- Routing for HTTP requests ---------------------------------------------------------
     
     void HttpInterface::routeRequest(HttpRequest* req)
@@ -447,8 +511,14 @@ namespace Aseba
         {   // reset nodes
             return evReset(req, req->tokens);
         }
-        else
-            finishResponse(req, 404, "");
+	if (serveLocalFiles
+		&& req->tokens[0].find("doc") == 0
+		&& req->tokens.size() == 2)
+	{
+		incomingGetFile(req, req->tokens[1]);
+		return;
+	}
+        finishResponse(req, 404, "");
     }
     
     // Handler: Node descriptions
